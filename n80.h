@@ -242,10 +242,16 @@ void saveConfig();
 #define KEY_SHIFT 0xFF
 #define KEY_CTRL 0xFC
 #define KEY_GRAPH 0xFB
+#define KEY_TENKEY_9  0xF9
 #define KEY_TENKEY_8  0xF8
-#define KEY_TENKEY_4  0xF4
+#define KEY_TENKEY_7  0xF7
 #define KEY_TENKEY_6  0xF6
+#define KEY_TENKEY_5  0xF5
+#define KEY_TENKEY_4  0xF4
+#define KEY_TENKEY_3  0xF3
 #define KEY_TENKEY_2  0xF2
+#define KEY_TENKEY_1  0xF1
+#define KEY_TENKEY_0  0xF0
 
 
 #ifdef __cplusplus

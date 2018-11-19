@@ -386,40 +386,74 @@ static void n80main(){
     if (Serial.available() > 0) {
       serialKeyCode = Serial.read();
       //Special Key
-      if( serialKeyCode == 27 ){ //ESC
-        serialKeyCode = Serial.read();
-        if(serialKeyCode == 91){
+      switch( serialKeyCode ){
+        case 27: //ESC
           serialKeyCode = Serial.read();
-          switch(serialKeyCode){
-            case 65:
-              serialKeyCode = 0x12;  //UP
-              break;
-            case 66:
-              serialKeyCode = 0x11;  //DOWN
-              break;
-            case 67:
-              serialKeyCode = 0x13;  //RIGHT
-              break;
-            case 68:
-              serialKeyCode = 0x14;  //LEFT
-              break;
-            case 49:
-              serialKeyCode = 0x15;  //HOME
-              break;
-            case 52:
-              serialKeyCode = 0x16;  //END -> CLR
-              break;
-            case 50:
-              serialKeyCode = 0x18;  //INST
-              break;
-            default:
-              serialKeyCode = 0;
+          if(serialKeyCode == 91){
+            serialKeyCode = Serial.read();
+            switch(serialKeyCode){
+              case 65:
+                serialKeyCode = 0x12;  //UP
+                break;
+              case 66:
+                serialKeyCode = 0x11;  //DOWN
+                break;
+              case 67:
+                serialKeyCode = 0x13;  //RIGHT
+                break;
+              case 68:
+                serialKeyCode = 0x14;  //LEFT
+                break;
+              case 49:
+                serialKeyCode = 0x15;  //HOME
+                break;
+              case 52:
+                serialKeyCode = 0x16;  //END -> CLR
+                break;
+              case 50:
+                serialKeyCode = 0x18;  //INST
+                break;
+              default:
+                serialKeyCode = 0;
+            }
           }
-        }
-      }  
-      if(serialKeyCode == 127){ //BackSpace
+          break;
+        case 127://BackSpace
           serialKeyCode = 0x17;
+          break;
+        case 0x30:
+          serialKeyCode = KEY_TENKEY_0;
+          break;
+        case 0x31:
+          serialKeyCode = KEY_TENKEY_1;
+          break;
+        case 0x32:
+          serialKeyCode = KEY_TENKEY_2;
+          break;
+        case 0x33:
+          serialKeyCode = KEY_TENKEY_3;
+          break;
+        case 0x34:
+          serialKeyCode = KEY_TENKEY_4;
+          break;
+        case 0x35:
+          serialKeyCode = KEY_TENKEY_5;
+          break;
+        case 0x36:
+          serialKeyCode = KEY_TENKEY_6;
+          break;
+        case 0x37:
+          serialKeyCode = KEY_TENKEY_7;
+          break;
+        case 0x38:
+          serialKeyCode = KEY_TENKEY_8;
+          break;
+        case 0x39:
+          serialKeyCode = KEY_TENKEY_9;
+          break;
       }
+      
+      
       while(Serial.available() > 0 && Serial.read() != -1);
       //Serial.printf("KEY: %x",serialKeyCode);
       //Serial.println();

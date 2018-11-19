@@ -151,10 +151,16 @@ static inline BYTE convert_key(BYTE code)
   case KEY_SHIFT:  /* SHIFT */ key = 0x46; break;
   case KEY_CTRL:   /* CTRL */ key = 0x47; break;
   case KEY_GRAPH:   /* GRAPH */ key = 0x44; break;
+  case KEY_TENKEY_9:  /* テンキー9 */ key = 0x09; break;
   case KEY_TENKEY_8:  /* テンキー8 */ key = 0x08; break;
-  case KEY_TENKEY_4:  /* テンキー4 */ key = 0x04; break;
+  case KEY_TENKEY_7:  /* テンキー7 */ key = 0x07; break;
   case KEY_TENKEY_6:  /* テンキー6 */ key = 0x06; break;
+  case KEY_TENKEY_5:  /* テンキー5 */ key = 0x05; break;
+  case KEY_TENKEY_4:  /* テンキー4 */ key = 0x04; break;
+  case KEY_TENKEY_3:  /* テンキー3 */ key = 0x03; break;
   case KEY_TENKEY_2:  /* テンキー2 */ key = 0x02; break;
+  case KEY_TENKEY_1:  /* テンキー1 */ key = 0x01; break;
+  case KEY_TENKEY_0:  /* テンキー0 */ key = 0x00; break;
   
   default:  break;
   }
