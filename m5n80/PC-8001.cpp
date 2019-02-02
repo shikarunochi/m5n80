@@ -144,7 +144,7 @@ export void _n80_device_initialize(LPN80DEVICE dev, SYNCFNC enter, SYNCFNC leave
 	dev->vrtc.init();
 	dev->dmac.init();
 	dev->cmt.init();
-//	dev->attr.chg_converter(1);						// attribute convert mode init (mono)
+	dev->attr.chg_converter(1);						// attribute convert mode init (mono)
 	dev->calc_clk_sync(&n80device, 3993600, IVLMSEC);	// CLK = 4MHz, sync interval = 20ms
 
 	// set default params

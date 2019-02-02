@@ -167,7 +167,7 @@ typedef struct N80ATTR_tag {
 	void	(*reset)();
 	int		(*eval)(int);		// eval attribute
 	void	(*cache)(int);		// copy vram to cache array
-	void	(*chg_converter)();	// change attribute converter function
+	void	(*chg_converter)(int);	// change attribute converter function
 	BYTE	(*_convfunc)(BYTE);	// pointer to attribute converter function
 	void	(*invalid)();		// set all attrchg invalid
 	void	(*set)(int, BYTE);	// set attrchg of line

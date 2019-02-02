@@ -80,6 +80,13 @@ void updateN80List();
 void selectN80File(String n80Filename);
 void selectCMTFile(String cmtFilename);
 
+#define MAX_FILES 255 // this affects memory
+String n80List[MAX_FILES];
+int n80ListCount;
+void aSortN80List();
+String choseN80File();
+boolean btnBLongPressFlag;
+
 static void keyInput(BYTE serialKeyCode);
 
 void selectN80();
@@ -122,6 +129,8 @@ bool joyPadPushed_Press;
 
 void checkJoyPad();
 
+#define CARDKB_ADDR 0x5F
+void checkI2cKeyboard();
 
 //--------------------------------------------------------------
 // シグナル関連
@@ -217,6 +226,7 @@ BYTE check_shift(BYTE code){
   
   case 0x11: key = 0x12;break; // DOWN CURSOR
   case 0x14: key = 0x13;break; // LEFT CURSOR
+  case 0x18: key = 0x17;break; // INST
   }
   return key;
 }
@@ -463,15 +473,30 @@ static void n80main(){
     }
     M5.update();
     if(M5.BtnA.wasPressed()){
-      if(strlen(pc80Config.n80File) != 0){
-         selectN80File(String(pc80Config.n80File));
+        // toggle PCG mode ON/OFF
+        n80device.pcg_mode ^= 0x01;
+        n80device.attr.invalid();
+    }
+
+    if(M5.BtnB.wasReleased()){
+      if(btnBLongPressFlag != true){
+        if(strlen(pc80Config.n80File) != 0){
+          selectN80File(String(pc80Config.n80File));
+        }
+      }else{
+        btnBLongPressFlag = false;
       }
     }
-    if(M5.BtnB.wasPressed()){
-      // toggle PCG mode ON/OFF
-      n80device.pcg_mode ^= 0x01;
-      n80device.attr.invalid();
-    }
+    if(M5.BtnB.pressedFor(2000)){
+      if(btnBLongPressFlag != true){
+        btnBLongPressFlag = true;
+        suspendMachine = true;
+        delay(100);
+        choseN80File();
+        delay(100);
+        selectN80File(String(pc80Config.n80File)); //この中でSuspendは戻る
+      }
+    }          
     if(M5.BtnC.wasPressed()){ 
       if(webStarted){
         stopWebServer();
@@ -479,6 +504,9 @@ static void n80main(){
         startWebServer();
       }
     }
+
+    //キーボードチェック
+    checkI2cKeyboard();
     //ジョイパッドチェック
     checkJoyPad();
   }
@@ -581,6 +609,8 @@ int main_core()
   joyPadPushed_A = false;
   joyPadPushed_B = false;
   joyPadPushed_Press = false;
+
+  btnBLongPressFlag = false;
 
 // save cmt path
   sprintf(n80device.save_cmt_path, "%s/cassette.cmt", CMT_DIRECTORY);
@@ -724,8 +754,10 @@ void * webserver_thread_func(void *arg)
 
 void checkJoyPad(){
   int joyX,joyY,joyPress,buttonA,buttonB;
-  Wire.requestFrom(0x52,3);
-  
+  if(Wire.requestFrom(0x52,3) < 3){
+    return;
+  }
+
   while(Wire.available()){
     joyX = Wire.read();//X（ジョイパッド的には Y）
     joyY = Wire.read();//Y（ジョイパッド的には X）
@@ -1075,6 +1107,7 @@ void updateN80List(){
   n80Root = SD.open(N80_DIRECTORY);
 
   n80ListOptionHTML = "";
+  n80ListCount = 0;
   while(1){
     File entry =  n80Root.openNextFile();
     if(!entry){// no more files
@@ -1087,17 +1120,23 @@ void updateN80List(){
         String checkName = n80Name;
         checkName.toUpperCase();
         if(checkName.endsWith(".N80")){
-          n80ListOptionHTML += "<option value=\"";
-          n80ListOptionHTML += n80Name;
-          n80ListOptionHTML += "\">";
-          n80ListOptionHTML += n80Name;
-          n80ListOptionHTML += "</option>";
+          n80List[n80ListCount] = n80Name;
+          n80ListCount++;
         }
     }
-    
     entry.close();
   }
   n80Root.close();
+  
+  aSortN80List();
+
+  for(int index = 0;index < n80ListCount;index++){
+    n80ListOptionHTML += "<option value=\"";
+    n80ListOptionHTML += n80List[index];
+    n80ListOptionHTML += "\">";
+    n80ListOptionHTML += n80List[index];
+    n80ListOptionHTML += "</option>";
+  }
 }
 void updateCMTList(){
   File cmtRoot;
@@ -1124,4 +1163,208 @@ void updateCMTList(){
     entry.close();
   }
   cmtRoot.close();
+}
+
+//--------------------------------------------------------------
+// I2C Keyboard Logic
+//--------------------------------------------------------------
+void checkI2cKeyboard(){
+BYTE i2cKeyCode = 0;  
+  if(Wire.requestFrom(CARDKB_ADDR, 1)){  // request 1 byte from keyboard
+    while (Wire.available()) {
+      i2cKeyCode = Wire.read();                  // receive a byte as 
+      break;
+    }
+  }
+  if(i2cKeyCode == 0){
+    return;
+  }
+  Serial.println(i2cKeyCode, HEX);
+
+  //特殊キー
+  switch(i2cKeyCode){
+    case 0xB5:
+      i2cKeyCode = 0x12;  //UP
+      break;
+    case 0xB6:
+      i2cKeyCode = 0x11;  //DOWN
+      break;
+    case 0xB7:
+      i2cKeyCode = 0x13;  //RIGHT
+      break;
+    case 0xB4:
+      i2cKeyCode = 0x14;  //LEFT
+      break;
+    case 0x99: //Fn + UP
+      i2cKeyCode = 0x15;  //HOME
+      break;
+    case 0xA4: //Fn + Down
+      i2cKeyCode = 0x16;  //END -> CLR
+      break;
+    case 0x7F:  //Shift + BS
+      i2cKeyCode = 0x18;  //INST
+      break;
+    case 0x08: //BS
+      i2cKeyCode = 0x17;
+      break;
+    case 0x1B: //ESC->STOP
+      i2cKeyCode = 0x1a;
+      break;
+    //数字キーはテンキーとして扱う
+    case 0x30:
+      i2cKeyCode = KEY_TENKEY_0;
+      break;
+    case 0x31:
+      i2cKeyCode = KEY_TENKEY_1;
+      break;
+    case 0x32:
+      i2cKeyCode = KEY_TENKEY_2;
+      break;
+    case 0x33:
+      i2cKeyCode = KEY_TENKEY_3;
+      break;
+    case 0x34:
+      i2cKeyCode = KEY_TENKEY_4;
+      break;
+    case 0x35:
+      i2cKeyCode = KEY_TENKEY_5;
+      break;
+    case 0x36:
+      i2cKeyCode = KEY_TENKEY_6;
+      break;
+    case 0x37:
+      i2cKeyCode = KEY_TENKEY_7;
+      break;
+    case 0x38:
+      i2cKeyCode = KEY_TENKEY_8;
+      break;
+    case 0x39:
+      i2cKeyCode = KEY_TENKEY_9;
+      break;
+    default:
+      break;
+  }
+  keyInput(i2cKeyCode);
+}
+
+String choseN80File(){
+  delay(10);
+  M5.Lcd.fillScreen(TFT_BLACK);
+  delay(10);
+  M5.Lcd.setTextSize(2);
+  String curN80File  = String(pc80Config.n80File);
+  int selectIndex = 0;
+  for(int index = 0;index < n80ListCount;index++){
+    if(n80List[index].compareTo(curN80File)==0){
+      selectIndex = index;
+      break;
+    }
+  }
+  
+  int startIndex = 0;
+  int endIndex = startIndex + 10;
+  if(endIndex > n80ListCount){
+    endIndex = n80ListCount;
+  }
+  //Serial.print("start:");
+  //Serial.println(startIndex);
+  //Serial.println("end:");
+  //Serial.println(endIndex);
+  boolean needRedraw = true;
+  while(true){
+
+    if(needRedraw == true){
+      M5.Lcd.fillScreen(0);
+      M5.Lcd.setCursor(0,0);
+      startIndex = selectIndex - 5;
+      if(startIndex < 0){
+        startIndex = 0;
+      }
+
+      endIndex = startIndex + 13;
+      if(endIndex > n80ListCount -1){
+        endIndex = n80ListCount -1;
+      }
+
+      for(int index = startIndex;index < endIndex;index++){
+          if(index == selectIndex){
+             M5.Lcd.setTextColor(TFT_GREEN);
+          }else{
+            M5.Lcd.setTextColor(TFT_WHITE);
+          }
+          M5.Lcd.println(n80List[index]);
+      }
+      M5.Lcd.setTextColor(TFT_WHITE);
+
+      M5.Lcd.drawRect(0, 240 - 19, 100 , 18, TFT_WHITE);
+      M5.Lcd.setCursor(35, 240 - 17);
+      M5.Lcd.print("U P");
+      M5.Lcd.drawRect(110, 240 - 19, 100 , 18, TFT_WHITE);
+      M5.Lcd.setCursor(125, 240 - 17);
+      M5.Lcd.print("SELECT");
+      M5.Lcd.drawRect(220, 240 - 19, 100 , 18, TFT_WHITE);
+      M5.Lcd.setCursor(245, 240 - 17);
+      M5.Lcd.print("DOWN");
+      needRedraw = false;
+    }
+    M5.update();
+    if(M5.BtnA.wasPressed()){
+      selectIndex--;
+      if(selectIndex < 0){
+        selectIndex = 0;
+      }
+      needRedraw = true;
+    }
+
+    if(M5.BtnC.wasPressed()){
+      selectIndex++;
+      if(selectIndex > n80ListCount - 1){
+        selectIndex = n80ListCount -1;
+      }
+      needRedraw = true;
+    }
+    
+    if(M5.BtnB.wasPressed()){
+      Serial.print("select:");
+      Serial.println(n80List[selectIndex]);
+      delay(10);
+      M5.Lcd.fillScreen(TFT_BLACK);
+
+      strncpy(pc80Config.n80File, n80List[selectIndex].c_str(), 50);
+      saveConfig();
+      M5.Lcd.setCursor(0,0);
+      M5.Lcd.print("Set:");
+      M5.Lcd.print(n80List[selectIndex]);
+      delay(2000);
+      M5.Lcd.fillScreen(TFT_BLACK);
+      delay(10);
+      return n80List[selectIndex];
+    }    
+    delay(100);
+  }
+}
+
+
+/* bubble sort filenames */
+//https://github.com/tobozo/M5Stack-SD-Updater/blob/master/examples/M5Stack-SD-Menu/M5Stack-SD-Menu.ino
+void aSortN80List() {
+  
+  bool swapped;
+  String temp;
+  String name1, name2;
+  do {
+    swapped = false;
+    for(uint16_t i=0; i<n80ListCount-1; i++ ) {
+      name1 = n80List[i];
+      name1.toUpperCase();
+      name2 = n80List[i+1];
+      name2.toUpperCase();
+      if (name1.compareTo(name2) > 0) {
+        temp = n80List[i];
+        n80List[i] = n80List[i+1];
+        n80List[i+1] = temp;
+        swapped = true;
+      }
+    }
+  } while (swapped);
 }

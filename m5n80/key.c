@@ -126,7 +126,6 @@ static inline BYTE convert_key(BYTE code)
   case 0x13:  /* ARW-R */ key = 0x42;  break;
 
   case 0x15:  /* HOME  */ key = 0x40; break;
-  case 0x18:  /* INS   */ key = 0x43; break;
   case 0x17:  /* DEL   */ key = 0x43; break;
   case 0x1a:  /* PAUSE/BREAK   */ key = 0x48; break;
 
