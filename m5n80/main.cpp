@@ -1241,6 +1241,9 @@ BYTE i2cKeyCode = 0;
     case 0x39:
       i2cKeyCode = KEY_TENKEY_9;
       break;
+    case 0xAA: //mon から抜けるため、Fn + B は Ctrl + B にしておく。
+      i2cKeyCode = 0x02;
+      break;
     default:
       break;
   }
