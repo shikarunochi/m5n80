@@ -126,6 +126,7 @@ bool joyPadPushed_R;
 bool joyPadPushed_A;
 bool joyPadPushed_B;
 bool joyPadPushed_Press;
+bool enableJoyPadButton;
 
 void checkJoyPad();
 
@@ -555,7 +556,7 @@ int main_core()
 
   // Z80 Initialize
   __z80_set_external_method(&n80lx.cpu, _n80_mbread, _n80_mbwrite, _n80_ioread, _n80_iowrite);
-
+ 
 //  n80device.beep_on   = _n80_beep_on;
 //  n80device.beep_off  = _n80_beep_off;
 //  n80device.sound_on  = _n80_sound_on;
@@ -568,6 +569,7 @@ int main_core()
   // font file load
   if (init_font())
     return 1;
+
 
   loadConfig();
 
@@ -609,6 +611,7 @@ int main_core()
   joyPadPushed_A = false;
   joyPadPushed_B = false;
   joyPadPushed_Press = false;
+  enableJoyPadButton = false;
 
   btnBLongPressFlag = false;
 
@@ -781,6 +784,16 @@ void checkJoyPad(){
     buttonB = 1;
   }else{
     buttonB = 0;
+  }
+
+  if(enableJoyPadButton == false){
+    if(buttonA == 1){ //ボタン接続されていなければボタンAが0、Bが1のままなので、1度Aが1になれば、以降はボタン接続アリとする。
+      enableJoyPadButton = true;
+    }else{
+      //接続されていない場合は押されてない扱いとする。
+      buttonA = 0;
+      buttonB = 0;
+    }
   }
 
   if(joyPadPushed_U == false && joyX < 80){

@@ -2,7 +2,9 @@
 //     PC-8001 Emulator for M5Stack 2018/11/18 @shikarunochi 
 //------------------------------------------------------------------------
 #include <M5Stack.h>
+#include <M5StackUpdater.h>     // https://github.com/tobozo/M5Stack-SD-Updater/
 #include "n80.h"
+#include <Preferences.h>
 
 int xorKey = 0x80;
 
@@ -11,6 +13,12 @@ void setup() {
   M5.begin();
   delay(1000);
   Wire.begin();
+  if(digitalRead(BUTTON_A_PIN) == 0) {
+     Serial.println("Will Load menu binary");
+     updateFromFS(SD);
+     ESP.restart();
+  }
+
   //Cを押下しながら起動された場合は、強制的にアクセスポイントモードにする
   if(digitalRead(BUTTON_C_PIN) == 0) {
     pc80Config.forceAccessPoint = true;
@@ -65,6 +73,7 @@ void saveConfig(){
 
 }
 void loadConfig(){
+
   String confPath = String(ROM_DIRECTORY) + "/m5n80.conf";
   File configFile = SD.open(confPath, FILE_READ);
   String lineBuf = "";
@@ -111,6 +120,20 @@ void loadConfig(){
   }else{
     Serial.println("ConfigFile not found.");
   }
+
+  //preferences に Wi-Fi Configがあれば、そちらで上書きする。
+  Preferences preferences;
+  preferences.begin("wifi-config");
+  String wifi_ssid = preferences.getString("WIFI_SSID");
+  if(wifi_ssid.length() > 0){
+    strncpy(pc80Config.ssid, wifi_ssid.c_str(),sizeof(pc80Config.ssid));
+  }
+  String wifi_password = preferences.getString("WIFI_PASSWD");
+  if(wifi_password.length() > 0){
+    strncpy(pc80Config.pass, wifi_password.c_str(),sizeof(pc80Config.pass));
+  }
+  preferences.end();
+
 }
 
 void xorEnc(char fromData[], char toData[] ){
